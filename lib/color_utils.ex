@@ -70,7 +70,7 @@ defmodule ColorUtils do
     }
   end
 
-  def distance(%RGB{} = rgb_1, %RGB{} = rgb_2) do
+  def distance(%{red: red_1, green: green_1, blue: blue_1} = rgb_1, %{red: red_2, green: green_2, blue: blue_2} = rgb_2) do
     # Convert colors to LAB
     lab_a = rgb_to_lab(rgb_1)
     lab_b = rgb_to_lab(rgb_2)
@@ -104,8 +104,12 @@ defmodule ColorUtils do
     end
   end
 
-  def rgb_to_hex(%RGB{} = rgb) do
-    hex = (1 <<< 24) + (rgb.red <<< 16) + (rgb.green <<< 8) + rgb.blue
+  def rgb_to_hex(%{red: red, green: green, blue: blue} = rgb) when is_float(red) or is_float(green) or is_float(blue) do
+    rgb_to_hex(%{red: round(red), green: round(green), blue: round(blue)})
+  end
+
+  def rgb_to_hex(%{red: red, green: green, blue: blue} = rgb) do
+    hex = (1 <<< 24) + (red <<< 16) + (green <<< 8) + blue
           |> Integer.to_string(16)
           |> String.slice(1..1500)
 
@@ -120,11 +124,11 @@ defmodule ColorUtils do
     end
   end
 
-  def rgb_to_xyz(%RGB{} = rgb) do
+  def rgb_to_xyz(%{red: red, green: green, blue: blue} = rgb) do
     pivoted = %RGB{
-      red: pivot_rgb(rgb.red / 255.0),
-      green: pivot_rgb(rgb.green / 255.0),
-      blue: pivot_rgb(rgb.blue / 255.0)
+      red: pivot_rgb(red / 255.0),
+      green: pivot_rgb(green / 255.0),
+      blue: pivot_rgb(blue / 255.0)
     }
     %XYZ{
       x: pivoted.red * 0.4124 + pivoted.green * 0.3576 + pivoted.blue * 0.1805,
@@ -141,7 +145,7 @@ defmodule ColorUtils do
     end
   end
 
-  def rgb_to_lab(%RGB{} = rgb) do
+  def rgb_to_lab(%{red: red, green: green, blue: blue} = rgb) do
     xyz = rgb_to_xyz(rgb)
     x = pivot_xyz(xyz.x / @xyz_white_ref.x)
     y = pivot_xyz(xyz.y / @xyz_white_ref.y)
@@ -154,7 +158,7 @@ defmodule ColorUtils do
     }
   end
 
-  def get_complementary_colors(%RGB{} = rgb) do
+  def get_complementary_colors(%{red: red, green: green, blue: blue} = rgb) do
     rgb_to_hsv(rgb) |> get_complementary_colors |> Enum.map(&(hsv_to_rgb(&1)))
   end
 
@@ -166,7 +170,7 @@ defmodule ColorUtils do
     add_hue(@triad_color_deltas, hsv)
   end
 
-  def get_triad_colors(%RGB{} = rgb) do
+  def get_triad_colors(%{red: red, green: green, blue: blue} = rgb) do
     rgb_to_hsv(rgb) |> get_triad_colors |> Enum.map(&(hsv_to_rgb(&1)))
   end
 
@@ -174,7 +178,7 @@ defmodule ColorUtils do
     add_hue(@analogous_color_deltas, hsv)
   end
 
-  def get_analogous_colors(%RGB{} = rgb) do
+  def get_analogous_colors(%{red: red, green: green, blue: blue} = rgb) do
     rgb_to_hsv(rgb) |> get_analogous_colors |> Enum.map(&(hsv_to_rgb(&1)))
   end
 
@@ -189,7 +193,7 @@ defmodule ColorUtils do
     Enum.map(deltas, &add_hue(hsv, &1))
   end
 
-  def rgb_to_hsv(%RGB{red: red, green: green, blue: blue} = _rgb) do
+  def rgb_to_hsv(%{red: red, green: green, blue: blue} = _rgb) do
     # Convert rgb values to be from 0..1 rather than 0..255
     rgb_values = %RGB{red: red/255, green: green/255, blue: blue/255}
     rgb_values_list = [rgb_values.red, rgb_values.green, rgb_values.blue]
@@ -229,7 +233,7 @@ defmodule ColorUtils do
       (color * 255) / 100 |> trunc()
   end
 
-  defp get_hue(%RGB{red: red, green: green, blue: blue} = _rgb_values,
+  defp get_hue(%{red: red, green: green, blue: blue} = _rgb_values,
     c_delta, c_max) do
     60 * cond do
       (c_delta == 0) -> 0
